@@ -1,0 +1,2 @@
+tkinterweb==3.24.7
+pytest==7.2.1
