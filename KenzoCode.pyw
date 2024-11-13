@@ -10,6 +10,7 @@ import os
 import subprocess
 from tkinterweb import HtmlFrame  # Import HtmlFrame to render web content
 
+print("The code is not supposed to be on .PY use .PYW instead")
 class CodeEditor(Tk):
     def __init__(self):
         super().__init__()
@@ -201,6 +202,38 @@ class CodeEditor(Tk):
                 self.tree.insert(root, "end", text=file, open=False)
             else:
                 self.tree.insert(root, "end", text=file)
+
+        # Bind keys for auto-pairing
+        self.text_area.bind("<KeyRelease-[>", self.insert_pair)
+        self.text_area.bind("<KeyRelease-{>", self.insert_pair)
+        self.text_area.bind("<KeyRelease-(>", self.insert_pair)
+        self.text_area.bind("<KeyRelease-\">", self.insert_pair)
+        self.text_area.bind("<KeyRelease-\'>", self.insert_pair)
+        self.text_area.bind("<KeyRelease-<>", self.insert_pair)
+
+    def insert_pair(self, event):
+        char_pairs = {
+            "[": "]",
+            "{": "}",
+            "(": ")",
+            "\"": "\"",
+            "\'": "\'",
+            "<": ">"
+        }
+        
+        # Get the character typed
+        char = event.char
+
+        # Check if the typed character is in the pairing dictionary
+        if char in char_pairs:
+            # Insert the closing character immediately after the typed one
+            self.text_area.insert("insert", char_pairs[char])
+            # Move the cursor back by one to place it between the pair
+            self.text_area.mark_set("insert", f"insert-1c")
+
+        # Return "break" to prevent the default behavior (if needed)
+        return "break"
+
 
 if __name__ == "__main__":
     app = CodeEditor()
