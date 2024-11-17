@@ -11,8 +11,109 @@ from pygments.styles import get_style_by_name
 from pygments import lex
 import os
 import subprocess
+import time
 from tkinterweb import HtmlFrame  # Import HtmlFrame to render web content
 
+# Sample commands for each language
+# This is a head pain!
+LANGUAGE_COMMANDS = {
+    "Python": {
+        "def": "Define a function",
+        "if": "If statement",
+        "import": "Import module",
+        "for": "Loops",
+        "while": "Infinte Loops",
+        "print": "Prints the string",
+        "try": "Try to do",
+    },
+    "HTML": {
+        "<div>": "Define a division",
+        "<p>": "Define a paragraph",
+        "<a>": "Define a link",
+        "<marquee>": "Moving text or element",
+        "<img>": "Image",
+        "<style>": "Styling in CSS",
+    },
+    "JavaScript": {
+        "function": "Define a function",
+        "if": "If statement",
+        "console": "Log output",
+        "let": "Define a variable",
+        "const": "Write a variable",
+    },
+    "Go": {
+        "import": "Import",
+        "package": "Package",
+        "int": "Data int",
+    },
+    "PHP": {
+        "echo": "Echos a string",
+        "<?php": "Start of PHP",
+        "array": "Array System",
+        "filopen": "Opens a file",
+    },
+    "Java": {
+        "public": "Public Void or element",
+        "private": "Private Void or element",
+        "import": "Import module or library",
+        "void": "Function",
+    },
+    "CSS": {
+        "body": "Body",
+        "font-size": "Size of font",
+        "background-color": "Background color of element in HTML",
+        "color": "Foreground Color of element in HTML",
+    },
+    "C": {
+        "#include": "Include/Declare Library",
+        "//": "Comment",
+        "int": "Point and if main entry point",
+        "printf": "Prints a string",
+        "scanf": "Take input",
+    },
+    "C++": {
+        "if": "If Declare",
+        "else": "If the user does not enter the right input",
+        "cin": "Takes the input from the user",
+        "cout": "Gives output",
+        "endl": "End of line",
+    },
+    "BatchFile": {
+        "echo": "Echos a string",
+        "rem": "Comment",
+        ":": "Label",
+        "set": "Sets variable",
+        "goto": "Goes to a label",
+    },
+    "Lua": {
+        "local": "Variable",
+        "if": "If statement",
+        "else": "If user input is not equal to the answer or string",
+        "while": "Loop",
+        "for": "Loop",
+    },
+    "PowerShell": {
+        "write-host": "Writes the string to screen",
+        "exit": "Exits the application",
+        "if": "If statement",
+        "Function": "Declare function",
+        "Cd": "Changes directory",
+    },
+    "Rust": {
+        "let": "Declare variable",
+        "bool": "Boolean",
+        "fn": "Declare function",
+        "println": "Prints a string",
+        "struct": "Custom data type",
+    },
+    "Bash": {
+        "echo": "Echos a string",
+        "ls": "List files",
+        "cd": "Change Directory",
+        "touch": "Creates empty file",
+        "rm": "Delete file",
+    },
+}
 # fallback imports
 try:
     from tkinter import *
@@ -84,6 +185,13 @@ class CodeEditor(Tk):
         self.status_bar = Label(self, text="Line: 1, Column: 1", bg="#282c34", fg="#d4d4d4", anchor="w")
         self.status_bar.pack(side="bottom", fill="x")
 
+        # Create a right-click context menu
+        self.context_menu = Menu(self, tearoff=0)
+        self.context_menu.add_command(label="No suggestions", state="disabled")
+
+        # Bind right-click to show context menu
+        self.text_area.bind("<Button-3>", self.show_context_menu)
+
         # Menu
         self.create_menu()
 
@@ -94,6 +202,40 @@ class CodeEditor(Tk):
         # Get the current position of the cursor (line, column)
         line, col = self.text_area.index(INSERT).split(".")
         self.status_bar.config(text=f"Line: {line}, Column: {col}")
+
+        # Show the context menu
+        self.context_menu.post(event.x_root, event.y_root)
+
+    def show_context_menu(self, event):
+        """Show context menu with commands based on the first typed character."""
+        self.context_menu.delete(0, "end")  # Clear previous menu items
+        current_line = self.text_area.get("insert linestart", "insert lineend")
+        first_char = current_line.strip()[:1]  # Get first character
+
+        # Get commands based on the current language and the first typed character
+        commands = self.get_commands(first_char)
+
+        # Add commands to the context menu
+        for command, description in commands.items():
+            self.context_menu.add_command(
+                label=f"{command}: {description}",
+                command=lambda cmd=command: self.insert_command(cmd)
+            )
+
+        # Show the context menu
+        self.context_menu.post(event.x_root, event.y_root)
+
+    def get_commands(self, first_char):
+        """Get commands for the selected language that start with the given character."""
+        language = self.language.get()
+        commands = LANGUAGE_COMMANDS.get(language, {})
+        filtered_commands = {cmd: desc for cmd, desc in commands.items() if cmd.startswith(first_char)}
+        return filtered_commands
+
+    def insert_command(self, command):
+        """Insert the selected command at the current cursor position."""
+        self.text_area.insert("insert", command)  # Insert command at the cursor position
+
 
     def create_menu(self):
         menu_bar = Menu(self)
