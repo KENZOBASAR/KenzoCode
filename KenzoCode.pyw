@@ -336,7 +336,7 @@ class CodeEditor(Tk):
         credit_win.configure(bg="#282c34")
 
         # Credit content
-        credit_label = Label(credit_win, text="Kenzo Code Editor v1.0\n\nDeveloper: Kenzo Basar\n\nBeta Tester: Bigam Ligo \n\nDesigner: Bigam Ligo\n\nIdeas: Keni Basar\n\nVersion: 1.3", 
+        credit_label = Label(credit_win, text="Kenzo Code Editor v1.3\n\nDeveloper: Kenzo Basar\n\nBeta Tester: Bigam Ligo \n\nDesigner: Bigam Ligo\n\nIdeas: Keni Basar\n\nVersion: 1.3", 
                             fg="#d4d4d4", bg="#C21213", font=("Courier New", 14), justify="center")
         credit_label.pack(expand=True)
 
@@ -352,7 +352,7 @@ class CodeEditor(Tk):
         about_win.configure(bg="#282c34")
 
         # About content
-        about_label = Label(about_win, text="Kenzo Code Editor v1.0\n\nDeveloped by KCR\n\nA simple yet powerful code editor\n\nVersion: 1.3", 
+        about_label = Label(about_win, text="Kenzo Code Editor v1.3\n\nDeveloped by KCR\n\nA simple yet powerful code editor\n\nVersion: 1.3", 
                             fg="#d4d4d4", bg="#282c34", font=("Courier New", 14), justify="center")
         about_label.pack(expand=True)
 
