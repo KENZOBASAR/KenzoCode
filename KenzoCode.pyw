@@ -1,12 +1,12 @@
 # Main import
 from tkinter import *
-from tkinter import ttk
+from tkinter import ttk, colorchooser
 import tkinter as tk
 from tkinter.ttk import Treeview, Style
 import tkinter.filedialog
 from tkinter import messagebox, filedialog
 from tkhtmlview import HTMLLabel
-from pygments.lexers import HtmlLexer, PythonLexer, JavascriptLexer, JavaLexer, CssLexer, BatchLexer, CLexer, CppLexer, TextLexer, RustLexer, PowerShellLexer, PhpLexer, GoLexer, LuaLexer, BashLexer
+from pygments.lexers import HtmlLexer, PythonLexer, JavascriptLexer, JavaLexer, CssLexer, BatchLexer, CLexer, CppLexer, TextLexer, RustLexer, PowerShellLexer, PhpLexer, GoLexer, LuaLexer, BashLexer, VBScriptLexer, DelphiLexer, CSharpLexer, JsonLexer
 from pygments.styles import get_style_by_name
 from pygments import lex
 import os
@@ -26,6 +26,15 @@ LANGUAGE_COMMANDS = {
         "print": "Prints the string",
         "try": "Try to do",
     },
+    "VBS": {
+        "dim": "Define a Variable",
+        "MsgBox": "Open a Message box",
+        "On Error": "Suppress errors",
+        "If": "If statements",
+        "Else": "If input is not equal to [If]",
+        "For": "Loop system",
+        "While": "Infinite loop",
+    },
     "HTML": {
         "<div>": "Define a division",
         "<p>": "Define a paragraph",
@@ -41,10 +50,24 @@ LANGUAGE_COMMANDS = {
         "let": "Define a variable",
         "const": "Write a variable",
     },
+    "JSON": {
+        "true": "Data is true",
+        "false": "Data is false",
+    },
+    "CSharp": {
+        "string": "Text",
+        "bool": "Boolean (True/False)",
+        "int": "Integer",
+    },
     "Go": {
         "import": "Import",
         "package": "Package",
         "int": "Data int",
+    },
+    "Pascal": {
+        "program": "Program name",
+        "begin": "Start the program",
+        "end": "End the program",
     },
     "PHP": {
         "echo": "Echos a string",
@@ -123,7 +146,7 @@ try:
     import tkinter.filedialog
     from tkinter import messagebox, filedialog
     from tkhtmlview import HTMLLabel
-    from pygments.lexers import HtmlLexer, PythonLexer, JavascriptLexer, JavaLexer, CssLexer, BatchLexer, CLexer, CppLexer, RustLexer, PowerShellLexer, PhpLexer, GoLexer, LuaLexer, BashLexer
+    from pygments.lexers import HtmlLexer, PythonLexer, JavascriptLexer, JavaLexer, CssLexer, BatchLexer, CLexer, CppLexer, TextLexer, RustLexer, PowerShellLexer, PhpLexer, GoLexer, LuaLexer, BashLexer, VBScriptLexer, DelphiLexer, CSharpLexer, JsonLexer
     from pygments.styles import get_style_by_name
     from pygments import lex
     import os
@@ -157,6 +180,7 @@ class CodeEditor(Tk):
         # Treeview setup for file navigation
         self.tree = Treeview(self.sidebar, selectmode="browse", show="tree", style="Custom.Treeview")
         self.tree.pack(expand=True, fill="both")
+        self.tree.bind("<<TreeviewSelect>>", self.open_file)
 
         # ChatGPT HTML rendering in sidebar
         self.chatgpt_frame = HtmlFrame(self.sidebar, width=150, height=600)  # Adjusted width for smaller frame
@@ -272,6 +296,7 @@ class CodeEditor(Tk):
         themes_menu.add_command(label="Solarized Light", command=lambda: self.set_theme('solarized_light'))
         themes_menu.add_command(label="Solarized Blue", command=lambda: self.set_theme('solarized_blue'))
         themes_menu.add_command(label="Dark Blue", command=lambda: self.set_theme('dark_blue'))
+        themes_menu.add_command(label="Custom", command=lambda: self.set_theme('Custom'))
         menu_bar.add_cascade(label="Themes", menu=themes_menu)
 
 
@@ -290,7 +315,11 @@ class CodeEditor(Tk):
         language_menu.add_radiobutton(label="PHP", variable=self.language, value="PHP")
         language_menu.add_radiobutton(label="Go", variable=self.language, value="Go")
         language_menu.add_radiobutton(label="Lua", variable=self.language, value="Lua")
-        language_menu.add_radiobutton(label="Bash", variable=self.language, value="Bash")
+        language_menu.add_radiobutton(label="Bash", variable=self.language, value="Bash") 
+        language_menu.add_radiobutton(label="VBScript", variable=self.language, value="VBS")       
+        language_menu.add_radiobutton(label="Pascal", variable=self.language, value="Pascal")
+        language_menu.add_radiobutton(label="CSharp", variable=self.language, value="CSharp")
+        language_menu.add_radiobutton(label="JSON", variable=self.language, value="JSON")
         language_menu.add_radiobutton(label="Plain Text", variable=self.language, value="PlainText")
         menu_bar.add_cascade(label="Language", menu=language_menu)
 
@@ -299,6 +328,7 @@ class CodeEditor(Tk):
         # Language Templates menu
         templates_menu = Menu(menu_bar, tearoff=0)
         templates_menu.add_command(label="Insert Hello World", command=self.insert_hello_world)
+        templates_menu.add_command(label="Experimental- Insert Supported languages", command=self.insert_supported_lang)
         menu_bar.add_cascade(label="Language Templates", menu=templates_menu)
 
         self.config(menu=menu_bar)
@@ -325,9 +355,59 @@ class CodeEditor(Tk):
             self.text_area.config(bg="#7D7AE1", fg="#010005", insertbackground="#7D7AE1")
         elif theme == 'dark_blue':
             self.text_area.config(bg="#001067", fg="#010005", insertbackground="#001067")
+        elif theme == 'Custom':
+            self.open_custom_theme_window()
         else:
             print("Unknown theme:", theme)
 
+    def open_custom_theme_window(self):
+        """Open a window to select custom colors."""
+        custom_window = tk.Toplevel(self.master)
+        custom_window.title("Custom Theme")
+
+        # Function to choose color for background, foreground, and insert background
+        def choose_color(label, color_type):
+            color_code = colorchooser.askcolor()[1]
+            if color_code:
+                label.config(text=color_code)
+                self.custom_colors[color_type] = color_code
+        
+        self.custom_colors = {'bg': None, 'fg': None, 'insertbackground': None}
+
+        # Labels and buttons to choose colors for bg, fg, and insertbackground
+        bg_label = tk.Label(custom_window, text="Background Color: ")
+        bg_label.pack(pady=5)
+        bg_button = tk.Button(custom_window, text="Choose Background", 
+                              command=lambda: choose_color(bg_label, 'bg'))
+        bg_button.pack(pady=5)
+
+        fg_label = tk.Label(custom_window, text="Foreground Color: ")
+        fg_label.pack(pady=5)
+        fg_button = tk.Button(custom_window, text="Choose Foreground", 
+                              command=lambda: choose_color(fg_label, 'fg'))
+        fg_button.pack(pady=5)
+
+        insert_label = tk.Label(custom_window, text="Insert Background Color: ")
+        insert_label.pack(pady=5)
+        insert_button = tk.Button(custom_window, text="Choose Insert Background", 
+                                  command=lambda: choose_color(insert_label, 'insertbackground'))
+        insert_button.pack(pady=5)
+
+        # Apply button to set the custom theme
+        apply_button = tk.Button(custom_window, text="Apply Custom Theme", 
+                                  command=lambda: self.apply_custom_theme())
+        apply_button.pack(pady=20)
+
+    def apply_custom_theme(self):
+        """Apply the custom theme selected by the user."""
+        if None not in self.custom_colors.values():
+            self.text_area.config(
+                bg=self.custom_colors['bg'],
+                fg=self.custom_colors['fg'],
+                insertbackground=self.custom_colors['insertbackground']
+            )
+        else:
+            print("Please select all colors before applying.")
     def credits_window(self):
         # Create a new Toplevel window for Credit
         credit_win = Toplevel(self)
@@ -336,7 +416,7 @@ class CodeEditor(Tk):
         credit_win.configure(bg="#282c34")
 
         # Credit content
-        credit_label = Label(credit_win, text="Kenzo Code Editor v1.3\n\nDeveloper: Kenzo Basar\n\nBeta Tester: Bigam Ligo \n\nDesigner: Bigam Ligo\n\nIdeas: Keni Basar\n\nVersion: 1.3", 
+        credit_label = Label(credit_win, text="Kenzo Code Editor v1.0\n\nDeveloper: Kenzo Basar\n\nBeta Tester: Bigam Ligo \n\nDesigner: Bigam Ligo\n\nIdeas: Keni Basar\n\nVersion: 1.3", 
                             fg="#d4d4d4", bg="#C21213", font=("Courier New", 14), justify="center")
         credit_label.pack(expand=True)
 
@@ -352,7 +432,7 @@ class CodeEditor(Tk):
         about_win.configure(bg="#282c34")
 
         # About content
-        about_label = Label(about_win, text="Kenzo Code Editor v1.3\n\nDeveloped by KCR\n\nA simple yet powerful code editor\n\nVersion: 1.3", 
+        about_label = Label(about_win, text="Kenzo Code Editor v1.0\n\nDeveloped by KCR\n\nA simple yet powerful code editor\n\nVersion: 1.3", 
                             fg="#d4d4d4", bg="#282c34", font=("Courier New", 14), justify="center")
         about_label.pack(expand=True)
 
@@ -450,6 +530,14 @@ class CodeEditor(Tk):
             lexer = LuaLexer()
         elif self.language.get() == "Bash":
             lexer = BashLexer()
+        elif self.language.get() == "VBS":
+            lexer = VBScriptLexer()
+        elif self.language.get() == "Pascal":
+            lexer = DelphiLexer()
+        elif self.language.get() == "JSON":
+            lexer = JsonLexer()
+        elif self.language.get() == "CSharp":
+            lexer = CSharpLexer()
         elif self.language.get() == "PlainText":
             lexer = TextLexer()
         else:
@@ -481,6 +569,8 @@ class CodeEditor(Tk):
             return "gray"
         else:
             return "white"
+
+
 
     def render_html(self):
         html_code = self.text_area.get("1.0", END)
@@ -526,9 +616,40 @@ class CodeEditor(Tk):
             "Go": 'package main\nimport "fmt"\n \nfunc main() {\n    fmt.Println("Hello, World!")\n}',
             "Lua": '-- This is a comment\nprint("Hello, World!")',
             "Bash": '#!/bin/bash\necho "Hello, World!"',
+            "Pascal": 'program HelloWorld;\n\nbegin\n  WriteLn("Hello, World!");\nend.',
+            "CSharp": 'using System;\n \nclass Program\n{\n    static void Main()\n    {\n        Console.WriteLine("Hello, World!");\n    }\n}',
+            "Json": '{\n  "message": "Hello, World!"\n}',
+            "VBS": 'X=Msgbox("Hello world!", 0, "Hello world")',
             "PlainText": 'Hello, World!',
         }
         code = hello_world_code.get(self.language.get(), "Hello, World!")
+        self.text_area.delete(1.0, END)
+        self.text_area.insert(INSERT, code)
+
+    def insert_supported_lang(self):
+        supportedlang_code = {
+            "Python": 'print("This is python!")',
+            "HTML": '<h1>This is HTML!</h1>',
+            "JavaScript": 'console.output("This is JavaScript!")',
+            "Java": 'system.println("This is Java!")',
+            "CSS": 'body {\n  This is CSS!\n}',
+            "BatchFile": 'echo This is BatchFile!',
+            "C": '// This is C!',
+            "C++": '// This is C++',
+            "Rust": 'println("This is Rust!")',
+            "PowerShell": 'write-host("This is powershell!")',
+            "PHP": '<?php\necho This is PHP\n?>',
+            "Go": 'int This is Go!',
+            "Lua": 'local This is Lua!',
+            "Bash": 'echo -e "This is Bash!"',
+            "VBScript": 'MsgBox("This is VBScript!")',
+            "Pascal": 'program ThisIsPascal!;\nbegin\nend',
+            "CSharp": 'string This is C#!',
+            "JSON": '{\n  "id": "This is JSON!"\n}',
+            "PlainText": 'This is Plain Text',
+            "KenzoCode": 'And Also this is all the languages KenzoCode supports.'
+        }
+        code = supportedlang_code.get(self.language.get(), "KenzoCode")
         self.text_area.delete(1.0, END)
         self.text_area.insert(INSERT, code)
 
